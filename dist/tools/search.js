@@ -1,4 +1,4 @@
-import { getPage } from "../browser.js";
+import { getPage, gotoAndSettle } from "../browser.js";
 export async function search(context, query, category = "all") {
     const page = await getPage(context);
     const categoryPaths = {
@@ -19,8 +19,12 @@ export async function search(context, query, category = "all") {
     else {
         searchUrl = `https://www.dndbeyond.com/${path}?filter-search=${encodedQuery}`;
     }
-    await page.goto(searchUrl, { waitUntil: "networkidle", timeout: 30000 });
-    await page.waitForTimeout(1500);
+    await gotoAndSettle(page, searchUrl, {
+        selector: category === "all"
+            ? ".search-result, .results-item, .no-results"
+            : ".listing-body div.info[data-slug], .no-results, .listing-empty",
+        settleMs: 1500,
+    });
     const results = await page.evaluate((cat) => {
         const items = [];
         if (cat === "all") {

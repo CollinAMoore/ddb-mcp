@@ -1,4 +1,4 @@
-import { getPage, isLoggedIn } from "../browser.js";
+import { getPage, gotoAndSettle, isLoggedIn } from "../browser.js";
 import { writeFileSync } from "fs";
 import { join } from "path";
 import { homedir } from "os";
@@ -38,11 +38,10 @@ export async function listCharacters(context) {
     if (!(await isLoggedIn(page))) {
         throw new Error("Not logged in. Please run ddb_login first.");
     }
-    await page.goto("https://www.dndbeyond.com/characters", {
-        waitUntil: "networkidle",
-        timeout: 30000,
+    await gotoAndSettle(page, "https://www.dndbeyond.com/characters", {
+        selector: "li.ddb-campaigns-character-card-wrapper",
+        settleMs: 2000,
     });
-    await page.waitForTimeout(2000);
     const characters = await page.evaluate(() => {
         const list = [];
         document.querySelectorAll("li.ddb-campaigns-character-card-wrapper").forEach((el) => {
@@ -69,11 +68,10 @@ export async function scrapeCharacterSheet(context, characterId) {
     if (!(await isLoggedIn(page))) {
         throw new Error("Not logged in. Please run ddb_login first.");
     }
-    await page.goto(`https://www.dndbeyond.com/characters/${characterId}`, {
-        waitUntil: "networkidle",
-        timeout: 30000,
+    await gotoAndSettle(page, `https://www.dndbeyond.com/characters/${characterId}`, {
+        selector: ".ddbc-character-name, .character-name",
+        settleMs: 2000,
     });
-    await page.waitForTimeout(2000);
     const content = await page.evaluate(() => {
         // Extract key sections from the character sheet
         const sections = {};

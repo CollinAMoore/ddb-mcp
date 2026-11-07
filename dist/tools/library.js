@@ -1,14 +1,13 @@
-import { getPage, isLoggedIn } from "../browser.js";
+import { getPage, gotoAndSettle, isLoggedIn } from "../browser.js";
 export async function listLibrary(context) {
     const page = await getPage(context);
     if (!(await isLoggedIn(page))) {
         throw new Error("Not logged in. Please run ddb_login first.");
     }
-    await page.goto("https://www.dndbeyond.com/en/library?type=sourcebooks&ownership=owned-shared", {
-        waitUntil: "networkidle",
-        timeout: 30000,
+    await gotoAndSettle(page, "https://www.dndbeyond.com/en/library?type=sourcebooks&ownership=owned-shared", {
+        selector: "div[data-testid='sourceCard']",
+        settleMs: 2000,
     });
-    await page.waitForTimeout(2000);
     const books = await page.evaluate(() => {
         const items = [];
         document.querySelectorAll("div[data-testid='sourceCard']").forEach((card) => {
@@ -33,10 +32,12 @@ export async function readBook(context, bookSlug, chapterSlug) {
     let url = `https://www.dndbeyond.com/sources/${bookSlug}`;
     if (chapterSlug)
         url += `/${chapterSlug}`;
-    await page.goto(url, { waitUntil: "networkidle", timeout: 45000 });
-    await page.waitForTimeout(3000);
     // Wait for content to render (DDB uses heavy JS rendering)
-    await page.waitForSelector("article, .content-container, .p-content-title", { timeout: 15000 }).catch(() => { });
+    await gotoAndSettle(page, url, {
+        selector: "article, .content-container, .p-content-title",
+        timeout: 45000,
+        settleMs: 2000,
+    });
     const content = await page.evaluate(() => {
         // Remove non-content elements
         document

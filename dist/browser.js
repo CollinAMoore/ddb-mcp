@@ -68,6 +68,22 @@ export async function isLoggedIn(page) {
         return false;
     }
 }
+/**
+ * Navigate without waiting for "networkidle". D&D Beyond pages keep ads and
+ * analytics requests running indefinitely, so networkidle often never fires
+ * and page.goto times out even though the page has loaded. Instead, wait for
+ * the DOM, then for the specific content we need, then give the network a
+ * short, best-effort chance to quiet down.
+ */
+export async function gotoAndSettle(page, url, options = {}) {
+    const { selector, timeout = 30000, selectorTimeout = 15000, settleMs = 1000 } = options;
+    await page.goto(url, { waitUntil: "domcontentloaded", timeout });
+    if (selector) {
+        await page.waitForSelector(selector, { timeout: selectorTimeout }).catch(() => { });
+    }
+    await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => { });
+    await page.waitForTimeout(settleMs);
+}
 export async function getPage(context) {
     const pages = context.pages();
     if (pages.length > 0)

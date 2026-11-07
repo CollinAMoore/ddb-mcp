@@ -78,6 +78,37 @@ export async function isLoggedIn(page: Page): Promise<boolean> {
   }
 }
 
+export interface GotoOptions {
+  /** CSS selector for the content the caller needs; waited for (best effort) after the DOM loads. */
+  selector?: string;
+  /** Timeout for the initial navigation, in ms. */
+  timeout?: number;
+  /** Timeout for the selector wait, in ms. */
+  selectorTimeout?: number;
+  /** Fixed pause after loading, to let client-side rendering finish, in ms. */
+  settleMs?: number;
+}
+
+/**
+ * Navigate without waiting for "networkidle". D&D Beyond pages keep ads and
+ * analytics requests running indefinitely, so networkidle often never fires
+ * and page.goto times out even though the page has loaded. Instead, wait for
+ * the DOM, then for the specific content we need, then give the network a
+ * short, best-effort chance to quiet down.
+ */
+export async function gotoAndSettle(page: Page, url: string, options: GotoOptions = {}): Promise<void> {
+  const { selector, timeout = 30000, selectorTimeout = 15000, settleMs = 1000 } = options;
+
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout });
+
+  if (selector) {
+    await page.waitForSelector(selector, { timeout: selectorTimeout }).catch(() => {});
+  }
+
+  await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+  await page.waitForTimeout(settleMs);
+}
+
 export async function getPage(context: BrowserContext): Promise<Page> {
   const pages = context.pages();
   if (pages.length > 0) return pages[0];

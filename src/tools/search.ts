@@ -1,5 +1,5 @@
 import { BrowserContext } from "playwright";
-import { getPage } from "../browser.js";
+import { getPage, gotoAndSettle } from "../browser.js";
 
 export type SearchCategory = "spells" | "monsters" | "items" | "races" | "classes" | "feats" | "all";
 
@@ -30,8 +30,13 @@ export async function search(
     searchUrl = `https://www.dndbeyond.com/${path}?filter-search=${encodedQuery}`;
   }
 
-  await page.goto(searchUrl, { waitUntil: "networkidle", timeout: 30000 });
-  await page.waitForTimeout(1500);
+  await gotoAndSettle(page, searchUrl, {
+    selector:
+      category === "all"
+        ? ".search-result, .results-item, .no-results"
+        : ".listing-body div.info[data-slug], .no-results, .listing-empty",
+    settleMs: 1500,
+  });
 
   const results = await page.evaluate((cat: SearchCategory) => {
     const items: Array<{ name: string; type: string; url: string }> = [];

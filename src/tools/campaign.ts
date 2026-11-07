@@ -1,5 +1,5 @@
 import { BrowserContext } from "playwright";
-import { getPage, isLoggedIn } from "../browser.js";
+import { getPage, gotoAndSettle, isLoggedIn } from "../browser.js";
 
 export async function getCampaign(context: BrowserContext, campaignId: string): Promise<string> {
   const page = await getPage(context);
@@ -8,11 +8,10 @@ export async function getCampaign(context: BrowserContext, campaignId: string): 
     throw new Error("Not logged in. Please run ddb_login first.");
   }
 
-  await page.goto(`https://www.dndbeyond.com/campaigns/${campaignId}`, {
-    waitUntil: "networkidle",
-    timeout: 30000,
+  await gotoAndSettle(page, `https://www.dndbeyond.com/campaigns/${campaignId}`, {
+    selector: "h1.page-title",
+    settleMs: 2000,
   });
-  await page.waitForTimeout(2000);
 
   const campaign = await page.evaluate(() => {
     const data: Record<string, unknown> = {};
@@ -56,11 +55,10 @@ export async function listMyCampaigns(context: BrowserContext): Promise<string> 
     throw new Error("Not logged in. Please run ddb_login first.");
   }
 
-  await page.goto("https://www.dndbeyond.com/my-campaigns", {
-    waitUntil: "networkidle",
-    timeout: 30000,
+  await gotoAndSettle(page, "https://www.dndbeyond.com/my-campaigns", {
+    selector: "li.ddb-campaigns-list-item-wrapper",
+    settleMs: 2000,
   });
-  await page.waitForTimeout(2000);
 
   const campaigns = await page.evaluate(() => {
     const list: Array<{ name: string; id: string; role: string; url: string }> = [];

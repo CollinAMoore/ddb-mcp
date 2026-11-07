@@ -1,12 +1,14 @@
-import { getPage } from "../browser.js";
+import { getPage, gotoAndSettle } from "../browser.js";
 export async function navigate(context, url) {
     const page = await getPage(context);
     // Only allow D&D Beyond URLs
     if (!url.startsWith("https://www.dndbeyond.com") && !url.startsWith("https://dndbeyond.com")) {
         throw new Error("Only D&D Beyond URLs (https://www.dndbeyond.com/...) are supported.");
     }
-    await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-    await page.waitForTimeout(1500);
+    await gotoAndSettle(page, url, {
+        selector: "main, article, .main-content, .page-content, #content",
+        settleMs: 1500,
+    });
     // Extract page text content and convert to readable markdown-ish format
     const content = await page.evaluate(() => {
         // Remove scripts and styles

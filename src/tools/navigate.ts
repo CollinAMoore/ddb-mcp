@@ -1,5 +1,5 @@
 import { BrowserContext } from "playwright";
-import { getPage } from "../browser.js";
+import { getPage, gotoAndSettle } from "../browser.js";
 
 export async function navigate(context: BrowserContext, url: string): Promise<string> {
   const page = await getPage(context);
@@ -9,8 +9,10 @@ export async function navigate(context: BrowserContext, url: string): Promise<st
     throw new Error("Only D&D Beyond URLs (https://www.dndbeyond.com/...) are supported.");
   }
 
-  await page.goto(url, { waitUntil: "networkidle", timeout: 30000 });
-  await page.waitForTimeout(1500);
+  await gotoAndSettle(page, url, {
+    selector: "main, article, .main-content, .page-content, #content",
+    settleMs: 1500,
+  });
 
   // Extract page text content and convert to readable markdown-ish format
   const content = await page.evaluate(() => {
