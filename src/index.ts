@@ -215,13 +215,15 @@ server.tool(
 // ─── ddb_search ───────────────────────────────────────────────────────────────
 server.tool(
   "ddb_search",
-  "Search D&D Beyond for spells, monsters, magic items, races, classes, or feats.",
+  "Search D&D Beyond for spells, monsters, items (magic items and mundane equipment like weapons, armor, and gear), races, classes, or feats. Results marked legacy: true are older 5e (2014) versions.",
   {
-    query: z.string().describe("The search query (e.g. 'Fireball', 'Beholder', 'Vorpal Sword')"),
+    query: z.string().describe("The search query (e.g. 'Fireball', 'Beholder', 'Vorpal Sword', 'Battleaxe')"),
     category: z
-      .enum(["spells", "monsters", "items", "races", "classes", "feats", "all"])
+      .enum(["spells", "monsters", "items", "magic-items", "equipment", "races", "classes", "feats", "all"])
       .optional()
-      .describe("Category to search within (defaults to 'all')"),
+      .describe(
+        "Category to search within (defaults to 'all'). 'items' searches both magic items and equipment; 'magic-items' and 'equipment' search just one."
+      ),
   },
   async ({ query, category }) => {
     try {

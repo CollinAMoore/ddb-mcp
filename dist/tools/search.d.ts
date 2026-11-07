@@ -1,4 +1,4 @@
 import { BrowserContext } from "playwright";
-export type SearchCategory = "spells" | "monsters" | "items" | "races" | "classes" | "feats" | "all";
+export type SearchCategory = "spells" | "monsters" | "items" | "magic-items" | "equipment" | "races" | "classes" | "feats" | "all";
 export declare function search(context: BrowserContext, query: string, category?: SearchCategory): Promise<string>;
 //# sourceMappingURL=search.d.ts.map

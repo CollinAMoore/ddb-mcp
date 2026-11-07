@@ -14,7 +14,7 @@ A [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server that gi
 | `ddb_get_campaign` | Fetch campaign details — DM, description, and active characters. |
 | `ddb_list_library` | List all sourcebooks you own, purchased, or have shared with you. |
 | `ddb_read_book` | Read content from an owned sourcebook, optionally by chapter slug. |
-| `ddb_search` | Search for spells, monsters, magic items, races, classes, or feats. |
+| `ddb_search` | Search for spells, monsters, items, races, classes, or feats. `items` covers magic items and mundane equipment (weapons, armor, gear); use `magic-items` or `equipment` to search just one. Legacy (5e/2014) results are flagged. |
 | `ddb_navigate` | Navigate to any D&D Beyond URL and return its text content. |
 | `ddb_interact` | Click, fill, or screenshot the currently loaded browser page. |
 | `ddb_current_page` | Return the text content of whatever page is currently loaded. |
