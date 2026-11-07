@@ -4,7 +4,8 @@ export async function listLibrary(context) {
     if (!(await isLoggedIn(page))) {
         throw new Error("Not logged in. Please run ddb_login first.");
     }
-    await gotoAndSettle(page, "https://www.dndbeyond.com/en/library?type=sourcebooks&ownership=owned-shared", {
+    // No "type" filter: type=sourcebooks would leave out every adventure.
+    await gotoAndSettle(page, "https://www.dndbeyond.com/en/library?ownership=owned-shared", {
         selector: "div[data-testid='sourceCard']",
         settleMs: 2000,
     });

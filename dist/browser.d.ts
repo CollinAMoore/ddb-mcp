@@ -2,7 +2,13 @@ import { Browser, BrowserContext, Page } from "playwright";
 export declare const SESSION_DIR: string;
 export declare const SESSION_PATH: string;
 export declare function getBrowser(): Promise<Browser>;
+/** Launch a separate, visible browser for interactive sign-in. The caller must close it. */
+export declare function launchVisibleBrowser(): Promise<Browser>;
+/** Create a context with the shared user agent and viewport, restoring the saved session if present. */
+export declare function newSessionContext(browser: Browser): Promise<BrowserContext>;
 export declare function getContext(browser: Browser): Promise<BrowserContext>;
+/** Drop the shared context so the next getContext() reloads the session from disk. */
+export declare function resetContext(): Promise<void>;
 export declare function saveSession(context: BrowserContext): Promise<void>;
 export declare function isLoggedIn(page: Page): Promise<boolean>;
 export interface GotoOptions {

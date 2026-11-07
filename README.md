@@ -93,6 +93,8 @@ A browser window (Chrome for Testing) will open and navigate to the D&D Beyond l
 
 You only need to log in once. If your session expires, just run `ddb_login` again.
 
+After login, all other tools run in a hidden (headless) browser, so no window appears. To watch the browser work, set `DDB_HEADLESS=false` in the server's environment.
+
 ### Example prompts
 
 **List your characters:**

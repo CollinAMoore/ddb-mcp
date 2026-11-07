@@ -6,38 +6,47 @@ export const SESSION_DIR = join(homedir(), ".config", "ddb-mcp");
 export const SESSION_PATH = join(SESSION_DIR, "session.json");
 let browserInstance = null;
 let contextInstance = null;
+const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+const LAUNCH_ARGS = ["--no-sandbox", "--disable-blink-features=AutomationControlled"];
+/**
+ * The shared browser runs headless (no visible window) by default. Set
+ * DDB_HEADLESS=false to watch it work. Login always uses its own visible
+ * window, because the user has to sign in by hand (see launchVisibleBrowser).
+ */
+const HEADLESS = process.env.DDB_HEADLESS !== "false";
 export async function getBrowser() {
     if (browserInstance)
         return browserInstance;
-    browserInstance = await chromium.launch({
-        headless: false,
-        args: [
-            "--no-sandbox",
-            "--disable-blink-features=AutomationControlled",
-        ],
-    });
+    browserInstance = await chromium.launch({ headless: HEADLESS, args: LAUNCH_ARGS });
     return browserInstance;
+}
+/** Launch a separate, visible browser for interactive sign-in. The caller must close it. */
+export async function launchVisibleBrowser() {
+    return chromium.launch({ headless: false, args: LAUNCH_ARGS });
+}
+/** Create a context with the shared user agent and viewport, restoring the saved session if present. */
+export async function newSessionContext(browser) {
+    if (!existsSync(SESSION_DIR)) {
+        mkdirSync(SESSION_DIR, { recursive: true });
+    }
+    return browser.newContext({
+        ...(existsSync(SESSION_PATH) ? { storageState: SESSION_PATH } : {}),
+        userAgent: USER_AGENT,
+        viewport: { width: 1280, height: 800 },
+    });
 }
 export async function getContext(browser) {
     if (contextInstance)
         return contextInstance;
-    if (!existsSync(SESSION_DIR)) {
-        mkdirSync(SESSION_DIR, { recursive: true });
-    }
-    if (existsSync(SESSION_PATH)) {
-        contextInstance = await browser.newContext({
-            storageState: SESSION_PATH,
-            userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-            viewport: { width: 1280, height: 800 },
-        });
-    }
-    else {
-        contextInstance = await browser.newContext({
-            userAgent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-            viewport: { width: 1280, height: 800 },
-        });
-    }
+    contextInstance = await newSessionContext(browser);
     return contextInstance;
+}
+/** Drop the shared context so the next getContext() reloads the session from disk. */
+export async function resetContext() {
+    if (contextInstance) {
+        await contextInstance.close();
+        contextInstance = null;
+    }
 }
 export async function saveSession(context) {
     if (!existsSync(SESSION_DIR)) {

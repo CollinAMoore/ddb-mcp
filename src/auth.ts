@@ -1,18 +1,31 @@
 import { BrowserContext, Page } from "playwright";
-import { saveSession, isLoggedIn, getPage } from "./browser.js";
+import { saveSession, isLoggedIn, getPage, launchVisibleBrowser, newSessionContext, resetContext } from "./browser.js";
 
 export async function login(context: BrowserContext): Promise<string> {
   const page = await getPage(context);
 
-  // Navigate to D&D Beyond and check if already logged in
-  await page.goto("https://www.dndbeyond.com", { waitUntil: "domcontentloaded", timeout: 30000 });
-  await page.waitForTimeout(1500);
-
+  // Check whether the shared (possibly headless) browser is already logged in
   if (await isLoggedIn(page)) {
     // Save session to disk even when already logged in, so it persists across restarts
     await saveSession(context);
     return "Already logged in. Session is active.";
   }
+
+  // The shared browser may be headless, so sign in through a separate visible
+  // window, save that session to disk, then reload the shared context from it.
+  const visibleBrowser = await launchVisibleBrowser();
+  try {
+    const loginContext = await newSessionContext(visibleBrowser);
+    const result = await interactiveLogin(loginContext);
+    await resetContext();
+    return result;
+  } finally {
+    await visibleBrowser.close();
+  }
+}
+
+async function interactiveLogin(context: BrowserContext): Promise<string> {
+  const page = await context.newPage();
 
   // Navigate directly to the DDB login page — this ensures the return_to URL
   // is set correctly to the main DDB site (not a support page).
