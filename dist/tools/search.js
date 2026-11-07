@@ -61,20 +61,30 @@ async function searchInfoListing(page, url) {
         settleMs: 1500,
     });
     return page.evaluate((legacyText) => {
+        const text = (el, selector) => el.querySelector(selector)?.textContent?.trim().replace(/\s+/g, " ") ?? "";
         const items = [];
         document.querySelectorAll(".listing-body div.info[data-slug]").forEach((el) => {
             // Use a.link for the name — avoids picking up child tags like <i class="i-concentration">
             const nameLink = el.querySelector("a.link");
             const name = nameLink?.textContent?.trim() ?? "";
             const url = nameLink?.href ?? "";
-            // Pull level/CR/rarity from typed rows (avoids the noisy name row)
-            const levelEl = el.querySelector(".row.spell-level span, .row.monster-challenge span, .row.item-rarity span, .row.class-level span, .row.feat-prerequisite span");
+            // Pull level/CR from typed rows (avoids the noisy name row)
+            const levelEl = el.querySelector(".row.spell-level span, .row.monster-challenge span, .row.class-level span, .row.feat-prerequisite span");
             const schoolEl = el.querySelector(".row.spell-school .school");
             const schoolName = schoolEl ? schoolEl.className.replace("school", "").trim() || "" : "";
-            const extras = [levelEl?.textContent?.trim(), schoolName].filter(Boolean).join(" | ");
+            // Magic items: rarity sits beside the name; item type and subtype have their own row
+            const rarity = text(el, ".row.item-name .rarity");
+            const itemType = [text(el, ".row.item-type .type"), text(el, ".row.item-type .subtype")]
+                .filter(Boolean)
+                .join(" ");
+            const extras = [levelEl?.textContent?.trim(), schoolName, rarity, itemType].filter(Boolean).join(" | ");
+            // Attunement shows "——" when not required
+            const attunementRaw = text(el, ".row.requires-attunement");
+            const attunement = attunementRaw && !/^[—–-]+$/.test(attunementRaw) ? attunementRaw : "";
             const legacy = (el.textContent ?? "").includes(legacyText);
-            if (name)
-                items.push({ name, type: extras, url, ...(legacy ? { legacy } : {}) });
+            if (name) {
+                items.push({ name, type: extras, url, ...(attunement ? { attunement } : {}), ...(legacy ? { legacy } : {}) });
+            }
         });
         return items;
     }, LEGACY_TEXT);

@@ -23,6 +23,8 @@ interface SearchResult {
   weight?: string;
   damage?: string;
   notes?: string;
+  /** Magic items only: the attunement requirement, when there is one. */
+  attunement?: string;
   /** True when D&D Beyond marks the entry as Legacy (older 5e/2014 rules). */
   legacy?: boolean;
 }
@@ -103,21 +105,33 @@ async function searchInfoListing(page: Page, url: string): Promise<SearchResult[
   });
 
   return page.evaluate((legacyText: string) => {
-    const items: Array<{ name: string; type: string; url: string; legacy?: boolean }> = [];
+    const text = (el: Element, selector: string) =>
+      el.querySelector(selector)?.textContent?.trim().replace(/\s+/g, " ") ?? "";
+    const items: Array<{ name: string; type: string; url: string; attunement?: string; legacy?: boolean }> = [];
     document.querySelectorAll(".listing-body div.info[data-slug]").forEach((el) => {
       // Use a.link for the name — avoids picking up child tags like <i class="i-concentration">
       const nameLink = el.querySelector("a.link") as HTMLAnchorElement | null;
       const name = nameLink?.textContent?.trim() ?? "";
       const url = nameLink?.href ?? "";
-      // Pull level/CR/rarity from typed rows (avoids the noisy name row)
+      // Pull level/CR from typed rows (avoids the noisy name row)
       const levelEl = el.querySelector(
-        ".row.spell-level span, .row.monster-challenge span, .row.item-rarity span, .row.class-level span, .row.feat-prerequisite span"
+        ".row.spell-level span, .row.monster-challenge span, .row.class-level span, .row.feat-prerequisite span"
       );
       const schoolEl = el.querySelector(".row.spell-school .school");
       const schoolName = schoolEl ? schoolEl.className.replace("school", "").trim() || "" : "";
-      const extras = [levelEl?.textContent?.trim(), schoolName].filter(Boolean).join(" | ");
+      // Magic items: rarity sits beside the name; item type and subtype have their own row
+      const rarity = text(el, ".row.item-name .rarity");
+      const itemType = [text(el, ".row.item-type .type"), text(el, ".row.item-type .subtype")]
+        .filter(Boolean)
+        .join(" ");
+      const extras = [levelEl?.textContent?.trim(), schoolName, rarity, itemType].filter(Boolean).join(" | ");
+      // Attunement shows "——" when not required
+      const attunementRaw = text(el, ".row.requires-attunement");
+      const attunement = attunementRaw && !/^[—–-]+$/.test(attunementRaw) ? attunementRaw : "";
       const legacy = (el.textContent ?? "").includes(legacyText);
-      if (name) items.push({ name, type: extras, url, ...(legacy ? { legacy } : {}) });
+      if (name) {
+        items.push({ name, type: extras, url, ...(attunement ? { attunement } : {}), ...(legacy ? { legacy } : {}) });
+      }
     });
     return items;
   }, LEGACY_TEXT);
